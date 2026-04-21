@@ -1,59 +1,69 @@
 pipeline {
     agent any
 
+    tools {
+        maven 'Maven'
+        jdk 'JDK17'
+    }
+
     environment {
-        IMAGE_NAME = "springboot-app"
-        CONTAINER_NAME = "springboot-container"
-        PORT = "8085"
+        IMAGE_NAME = "traineeapi"
+        DOCKERHUB_USER = "ks9897"
+        CONTAINER_NAME = "traineeapi-container"
     }
 
     stages {
 
-        stage('Clone Code') {
+        stage('Build JAR') {
             steps {
-                git 'https://github.com/ks342/TraineesAPi.git'
-            }
-        }
-
-        stage('Build JAR (Maven in Docker)') {
-            steps {
-                sh '''
-                docker run --rm -v $PWD:/app -w /app maven:3.9.9-eclipse-temurin-17 mvn clean package
-                '''
+                dir('Assignment 10 Trainee Testing') {
+                    bat 'mvn clean package'
+                }
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh '''
-                docker build -t $IMAGE_NAME .
-                '''
+                dir('Assignment 10 Trainee Testing') {
+                    bat 'docker build -t traineeapi .'
+                }
             }
         }
 
-        stage('Stop Old Container') {
+        stage('Login to DockerHub') {
             steps {
-                sh '''
-                docker rm -f $CONTAINER_NAME || true
-                '''
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'USER',
+                    passwordVariable: 'PASS'
+                )]) {
+                    bat '''
+            docker logout
+            docker login -u %USER% -p %PASS%
+            '''
+                }
             }
         }
 
-        stage('Run New Container') {
+        stage('Tag Image') {
             steps {
-                sh '''
-                docker run -d -p $PORT:8080 --name $CONTAINER_NAME $IMAGE_NAME
-                '''
+                bat 'docker tag traineeapi %DOCKERHUB_USER%/traineeapi:latest'
             }
         }
-    }
 
-    post {
-        success {
-            echo "App deployed successfully 🚀"
+        stage('Push to DockerHub') {
+            steps {
+                bat 'docker push %DOCKERHUB_USER%/traineeapi:latest'
+            }
         }
-        failure {
-            echo "Build failed ❌ Check logs"
+
+        stage('Run Container') {
+            steps {
+                bat '''
+                docker rm -f traineeapi-container || exit 0
+                docker run -d -p 8211:8080 --name traineeapi-container traineeapi
+                '''
+            }
         }
     }
 }
