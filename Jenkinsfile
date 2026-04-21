@@ -84,6 +84,7 @@ pipeline {
 
         stage('Clone Code') {
             steps {
+                git branch:'main',
                 git 'https://github.com/ks342/TraineesAPi.git'
             }
         }
