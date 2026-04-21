@@ -69,10 +69,12 @@
 // }
 
 
-
-
 pipeline {
     agent any
+
+    options {
+        skipDefaultCheckout(true)
+    }
 
     environment {
         IMAGE_NAME = "your-dockerhub-username/springboot-app"
@@ -82,14 +84,13 @@ pipeline {
 
     stages {
 
-    stage('Clone Code') {
-    steps {
-        git(
-            branch: 'main',
-            url: 'https://github.com/ks342/TraineesAPi.git'
-        )
-    }
-}
+        stage('Clone Code') {
+            steps {
+                git(
+                    branch: 'main',
+                    url: 'https://github.com/ks342/TraineesAPi.git'
+                )
+            }
         }
 
         stage('Build JAR') {
